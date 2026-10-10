@@ -20,10 +20,10 @@ from core.api.exceptions import (
     BadRequestError,
     ConflictError,
     PermissionDeniedError,
-    ValidationError,
 )
+from modules.leave.services.errors import ValidationError
 from modules.leave.domain import categories as cat
-from modules.leave.domain import counting, eligibility, overlap, routing, sm
+from modules.leave.domain import counting, eligibility, overlap, routing, state_machine as sm
 from modules.leave.models import (
     DEBIT,
     ApprovalTask,

@@ -1,4 +1,4 @@
-"""Leave administration (EL-UC-014, BR-EL-026, BR-EL-029).
+﻿"""Leave administration (EL-UC-014, BR-EL-026, BR-EL-029).
 
 Record maintenance is not sanctioning: an administrator may correct an account,
 enter an offline-sanctioned record, and manage the hierarchy, but cannot approve
@@ -13,7 +13,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from core.api.exceptions import ConflictError, ValidationError
+from core.api.exceptions import ConflictError
+from modules.leave.services.errors import ValidationError
 from modules.leave.domain import categories as cat
 from modules.leave.domain import routing as routing_domain
 from modules.leave.models import (

@@ -1,4 +1,4 @@
-"""Leave endpoints (AFR-EL-024..032).
+﻿"""Leave endpoints (AFR-EL-024..032).
 
 Two gates on every view: `HasModuleGrant("leave")` and the fine-grained permission
 the action needs. Both are declared on the view, so forgetting a permission fails
@@ -12,7 +12,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticatedPrincipal
+from fusion_auth.permissions import IsAuthenticatedPrincipal
 from rest_framework.response import Response
 from rest_framework.views import APIView
 

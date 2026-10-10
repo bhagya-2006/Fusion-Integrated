@@ -1,4 +1,4 @@
-"""Cancellation, extension and resumption (CW-EL-02..04).
+﻿"""Cancellation, extension and resumption (CW-EL-02..04).
 
 Each of these is its own aggregate with its own states, so the parent leave's
 approved record stays readable and the change to it is traceable. Approval
@@ -14,7 +14,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
-from core.api.exceptions import ConflictError, ValidationError
+from core.api.exceptions import ConflictError
+from modules.leave.services.errors import ValidationError
 from modules.leave.domain import categories as cat
 from modules.leave.domain import counting, routing, state_machine as sm
 from modules.leave.models import (
