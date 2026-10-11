@@ -49,7 +49,7 @@ NAV_ITEMS = [
      "required_permission": "leave.record.maintain", "sort_order": 80},
     {"code": "leave.year_end", "label": "Year-End Close", "icon": "CalendarSync",
      "to": "/leave/admin/year-end",
-     "required_permission": "leave.year_end.process", "sort_order": 90},
+     "required_permission": "leave.record.maintain", "sort_order": 90},
 ]
 
 #: Every permission this module recognises; ROLE_GRANTS below says who holds each.
