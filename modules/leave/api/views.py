@@ -1,4 +1,4 @@
-﻿"""Leave endpoints (AFR-EL-024..032).
+"""Leave endpoints (AFR-EL-024..032).
 
 Two gates on every view: `HasModuleGrant("leave")` and the fine-grained permission
 the action needs. Both are declared on the view, so forgetting a permission fails
@@ -86,7 +86,25 @@ class RequestCountsView(LeaveApiView):
 class LeaveRequestViewSet(viewsets.GenericViewSet):
     """Draft, submit, withdraw, and the owner-only detail screen."""
     serializer_class = ser.LeaveRequestSerializer
-    permission_classes = _gates("leave.request.create")
+
+    def get_permissions(self):
+        """Require the capability appropriate to each request action."""
+        permission_by_action = {
+            "create": ("leave.request.create",),
+            "partial_update": ("leave.request.create",),
+            "destroy": ("leave.request.delete",),
+            "retrieve": ("leave.request.view_self", "leave.request.view"),
+            "overlaps": ("leave.request.view_self", "leave.request.view"),
+            "submit": ("leave.request.create",),
+            "withdraw": ("leave.request.create", "leave.request.delete"),
+            "nominate": ("leave.request.create",),
+        }
+        return [
+            permission()
+            for permission in _gates(*permission_by_action.get(
+                self.action, ("leave.request.create",)
+            ))
+        ]
 
     def get_queryset(self):
         return scoping.requests_for(self.request.principal)
