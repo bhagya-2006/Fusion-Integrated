@@ -56,7 +56,7 @@ def people_in_scope() -> list[int]:
     """Everyone on the payroll. The directory owns that definition."""
     try:
         return sorted(person.user_id for person in directory.get_employees())
-    except Exception as exc:                                       # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 - directory failure must not stop callers
         log.warning("leave.yearend.directory_unavailable err=%s", exc)
         return []
 
@@ -77,10 +77,12 @@ def run(*, year: int, user_ids: list[int] | None = None, now=None,
 
     for user_id in (user_ids if user_ids is not None else people_in_scope()):
         try:
-            employee_kind = employee_kind_map[user_id]  # Get employee kind from the mapping
-            _run_for_person(user_id, year=year, pol_domain=pol_domain, now=now,
-                            dry_run=dry_run, report=report)
-        except Exception as exc:                                   # noqa: BLE001
+            employee_kind = employee_kind_map[user_id]
+            _run_for_person(
+                user_id, year=year, pol_domain=pol_domain, now=now,
+                dry_run=dry_run, report=report, employee_kind=employee_kind,
+            )
+        except Exception as exc:
             # One person's arithmetic never stops the run for the rest (BR-EL-009).
             log.exception("leave.yearend.person_failed user=%s year=%s", user_id, year)
             report.exceptions.append({"user_id": user_id, "error": str(exc)})
@@ -104,7 +106,7 @@ def run(*, year: int, user_ids: list[int] | None = None, now=None,
 
 
 def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool,
-                    report: YearEndReport) -> None:
+                    report: YearEndReport, employee_kind: str) -> None:
     opening = (LeaveBalance.objects
                .filter(user_id=user_id, year=year + 1)
                .exists())
@@ -114,9 +116,7 @@ def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool,
         return
 
     balances = list(LeaveBalance.objects.filter(user_id=user_id, year=year))
-    employee_kind = employee_kind_map[user_id]  # Get employee kind from the mapping
     plan = year_end_domain.plan(pol_domain, employee_kind, balances, year)
-
     postings = []
     for decision in plan:
         if decision.action == year_end_domain.LAPSE:
