@@ -1,35 +1,3 @@
-"""BR-EL-002..009: the year-end run.
-
-Runs once a year, credits the new entitlements, lapses what the policy does not
-carry forward, converts Vacation Leave into Earned Leave at the configured
-ratio, and carries the balance over. Everything is driven by `domain.year_end`,
-so the arithmetic is testable without a database and the run only supplies rows.
-"""
-from __future__ import annotations
-
-import logging
-from dataclasses import dataclass, field
-from decimal import Decimal
-
-from django.conf import settings
-from django.db import transaction
-from django.utils import timezone
-
-from modules.directory import contracts as directory
-from modules.leave.domain import year_end as year_end_domain
-from modules.leave.models import (
-    CARRY_FORWARD,
-    CONVERSION,
-    CREDIT,
-    LAPSE,
-    LeaveBalance,
-    LeavePolicy,
-)
-from modules.leave.services import ledger, notifications
-
-log = logging.getLogger("fusion.leave.yearend")
-
-
 @dataclass
 class YearEndReport:
     year: int
@@ -45,34 +13,23 @@ class YearEndReport:
                 f"converted={self.converted} carried={self.carried} "
                 f"skipped={self.skipped} exceptions={len(self.exceptions)}")
 
-
 def is_due(*, today, policy: LeavePolicy) -> bool:
-    """BR-EL-001: the run belongs to the closing year. Run early only when an
-    administrator says so, never on a calendar guess alone."""
     return today.month >= policy.year_end_month
 
-
 def people_in_scope() -> list[int]:
-    """Everyone on the payroll. The directory owns that definition."""
     try:
         return sorted(person.user_id for person in directory.get_employees())
-    except Exception as exc:  # noqa: BLE001 - directory failure must not stop callers
+    except Exception as exc:
         log.warning("leave.yearend.directory_unavailable err=%s", exc)
         return []
 
-
 @transaction.atomic
-def run(*, year: int, user_ids: list[int] | None = None, now=None,
-        dry_run: bool = False) -> YearEndReport:
-    """Close `year` and open `year + 1`. Idempotent per person: a person whose
-    balances are already marked processed is skipped rather than credited twice
-    (BR-EL-002)."""
+def run(*, year: int, user_ids: list[int] | None = None, now=None, dry_run: bool = False) -> YearEndReport:
     now = now or timezone.now()
     pol = LeavePolicy.objects.first() or LeavePolicy()
     pol_domain = pol.as_domain()
     report = YearEndReport(year=year)
 
-    # Create a mapping of user_id to kind
     employee_kind_map = {user.user_id: user.kind for user in directory.get_employees()}
 
     for user_id in (user_ids if user_ids is not None else people_in_scope()):
@@ -83,7 +40,6 @@ def run(*, year: int, user_ids: list[int] | None = None, now=None,
                 dry_run=dry_run, report=report, employee_kind=employee_kind,
             )
         except Exception as exc:
-            # One person's arithmetic never stops the run for the rest (BR-EL-009).
             log.exception("leave.yearend.person_failed user=%s year=%s", user_id, year)
             report.exceptions.append({"user_id": user_id, "error": str(exc)})
             notifications.enqueue(
@@ -104,14 +60,11 @@ def run(*, year: int, user_ids: list[int] | None = None, now=None,
     log.info("leave.yearend.done %s", report)
     return report
 
-
-def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool,
-                    report: YearEndReport, employee_kind: str) -> None:
+def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool, report: YearEndReport, employee_kind: str) -> None:
     opening = (LeaveBalance.objects
                .filter(user_id=user_id, year=year + 1)
                .exists())
     if opening:
-        # Already run for this person: doing it twice would double-credit them.
         report.skipped += 1
         return
 
@@ -144,10 +97,7 @@ def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool,
     LeaveBalance.objects.filter(user_id=user_id, year=year + 1).update(
         year_end_applied=True)
 
-
 def _credit_entitlements(pol: LeavePolicy, pol_domain, report: YearEndReport) -> None:
-    """BR-EL-004..008: the new year's entitlement, per person kind. Credit is the
-    policy's configured figure, not a hard-coded one."""
     next_year = report.year + 1
     for person in directory.get_employees():
         entitlement = _entitlement_for(person.kind, pol)
@@ -159,7 +109,6 @@ def _credit_entitlements(pol: LeavePolicy, pol_domain, report: YearEndReport) ->
             days=Decimal(str(entitlement)),
             note=f"Entitlement for {next_year}")])
         report.credited += 1
-
 
 def _entitlement_for(kind: str, pol: LeavePolicy) -> float | None:
     return {"faculty": float(pol.vacation_days),
