@@ -72,8 +72,12 @@ def run(*, year: int, user_ids: list[int] | None = None, now=None,
     pol_domain = pol.as_domain()
     report = YearEndReport(year=year)
 
+    # Create a mapping of user_id to kind
+    employee_kind_map = {user.user_id: user.kind for user in directory.get_employees()}
+
     for user_id in (user_ids if user_ids is not None else people_in_scope()):
         try:
+            employee_kind = employee_kind_map[user_id]  # Get employee kind from the mapping
             _run_for_person(user_id, year=year, pol_domain=pol_domain, now=now,
                             dry_run=dry_run, report=report)
         except Exception as exc:                                   # noqa: BLE001
@@ -110,7 +114,7 @@ def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool,
         return
 
     balances = list(LeaveBalance.objects.filter(user_id=user_id, year=year))
-    employee_kind = directory.get_employee_kind(user_id)  # Obtain employee kind from directory contract
+    employee_kind = employee_kind_map[user_id]  # Get employee kind from the mapping
     plan = year_end_domain.plan(pol_domain, employee_kind, balances, year)
 
     postings = []
