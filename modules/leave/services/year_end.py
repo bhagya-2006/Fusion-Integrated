@@ -110,7 +110,8 @@ def _run_for_person(user_id: int, *, year: int, pol_domain, now, dry_run: bool,
         return
 
     balances = list(LeaveBalance.objects.filter(user_id=user_id, year=year))
-    plan = year_end_domain.plan(balances, pol_domain, year)
+    employee_kind = directory.get_employee_kind(user_id)  # Obtain employee kind from directory contract
+    plan = year_end_domain.plan(pol_domain, employee_kind, balances, year)
 
     postings = []
     for decision in plan:
