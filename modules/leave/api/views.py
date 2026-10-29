@@ -12,12 +12,11 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from fusion_auth.permissions import IsAuthenticatedPrincipal
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from core.api.exceptions import NotFoundError
-from fusion_auth.permissions import HasModuleGrant, HasPermission
+from fusion_auth.permissions import HasModuleGrant, HasPermission, IsAuthenticatedPrincipal
 from modules.leave import services
 from modules.leave.api import serializers as ser
 from modules.leave.models import (
@@ -25,14 +24,12 @@ from modules.leave.models import (
     CancellationRequest,
     ExtensionRequest,
     HierarchyRoute,
-    LeaveBalance,
     LeaveRequest,
     OrganizationalUnit,
     ResumptionRequest,
     SlaThreshold,
     SubstituteNomination,
 )
-from modules.leave.models.requests import TASK_PENDING
 from modules.leave.selectors import queries, scoping
 
 MODULE = "leave"

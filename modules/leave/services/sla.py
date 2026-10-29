@@ -12,8 +12,8 @@ from datetime import timedelta
 from django.utils import timezone
 
 from modules.leave.models import SlaThreshold
-from modules.leave.services import notifications
 from modules.leave.selectors import queries
+from modules.leave.services import notifications
 
 log = logging.getLogger("fusion.leave.sla")
 
